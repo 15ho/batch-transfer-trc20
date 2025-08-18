@@ -3,11 +3,23 @@ const BatchTransfer = artifacts.require("BatchTransfer");
 
 contract('batchTransfer', async accounts => {
     it ('batchTransfer', async () => { 
-        await MyToken.deployed();
-        await BatchTransfer.deployed();
-        await BatchTransfer.methods.batchTransfer(MyToken.address, accounts, 100).send({
-            from: accounts[0],
-            shouldPollResponse: true
-        });
+        const myToken = await MyToken.deployed();
+        const batchTransfer = await BatchTransfer.deployed();
+
+        await myToken.approve(batchTransfer.address, 100_000_000);
+        await batchTransfer.batchTransfer(myToken.address, [accounts[1], accounts[2], accounts[3]], [50_000_000, 30_000_000, 20_000_000]);
+
+        const b1 = await myToken.balanceOf(accounts[1]);
+        assert.equal(b1, 50_000_000);
+        const b2 = await myToken.balanceOf(accounts[2]);
+        assert.equal(b2, 30_000_000);
+        const b3 = await myToken.balanceOf(accounts[3]);
+        assert.equal(b3, 20_000_000);
+
+        const txHash = await batchTransfer.batchTransfer(myToken.address, [accounts[4]], [1]);
+        const tx = await tronWeb.trx.getTransaction(txHash);
+        assert.equal(tx.ret[0].ret, "FAILED");
+        const b4 = await myToken.balanceOf(accounts[4]);
+        assert.equal(b4, 0);
     });
 })
